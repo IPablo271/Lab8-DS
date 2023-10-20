@@ -1,54 +1,38 @@
-from tensorflow.keras.models import load_model
 import joblib
 import numpy as np
+import pandas as pd
 from flask import Flask, jsonify, request
 
-modelo_flor = load_model("modelo_final_iris.h5")
-normalizador_flor = joblib.load("normalizador_iris.pkl")
+house_rent = joblib.load('house_rent_model.pkl')
 
-muestra_flor = {'long_sepalo':5.1,
-                 'ancho_sepalo':3.5,
-                 'long_petalo':1.4,
-                 'ancho_petalo':0.2}
-
-def devuelve_prediccion(modelo, normalizador, muestra_json):
-    
-    # Si fueran muchas más características,
-    #   probablemente sería bueno codificar
-    #   una iteración que contruya este arreglo
-    
-    long_sep = muestra_json['long_sepalo']
-    ancho_sep = muestra_json['ancho_sepalo']
-    long_pet = muestra_json['long_petalo']
-    ancho_pet = muestra_json['ancho_petalo']
-    
-    flor = [[long_sep, ancho_sep,
-             long_pet, ancho_pet]]
-    
-    flor = normalizador.transform(flor)
-    
-    clases = np.array(['Iris-setosa', 
-                       'Iris-versicolor', 
-                       'Iris-virginica'])
-    
-    #clase_ind = modelo.predict_classes(flor)
-    clase_ind = np.argmax(modelo.predict(flor), axis = -1)    
-    
-    return clases[clase_ind][0]     
-
-
-# pred = devuelve_prediccion(modelo_flor,normalizador_flor,muestra_flor)
-
-# print("Esta es la prediccion con el modelo que se es: "+str(pred))
-
+def predict_house_rent(model, dataframe):
+    predictions = model.predict(dataframe)
+    return predictions[0]
 
 app = Flask(__name__)
-@app.route('/modelo', methods=['GET'])
+
+@app.route('/modelo', methods=['POST'])
 def getProducts():
-    pred = devuelve_prediccion(modelo_flor,normalizador_flor,muestra_flor)
-    # data = request.get_json()
-    # print(data)
-    return jsonify({'prediccion': pred})
+    try:
+        data = request.get_json()
+
+        if data is None:
+            return jsonify({'error': 'El cuerpo de la solicitud debe contener datos JSON'}), 400
+
+        input_data = {
+            'city': [data.get('city', 1)],
+            'area': [data.get('area', 70)],
+            'rooms': [data.get('rooms', 2)],
+            'bathroom': [data.get('bathroom', 1)],
+            'furniture': [data.get('furniture', 1)],
+            'fire insurance (R$)': [data.get('fire insurance (R$)', 42)]
+        }
+
+        input_df = pd.DataFrame(input_data)
+        pred = predict_house_rent(house_rent, input_df)
+        return jsonify({'prediccion': pred})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
