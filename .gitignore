@@ -1,2 +1,3 @@
 ./data
 ./server/house_rent_model.pkl
+server/house_rent_model.pkl
