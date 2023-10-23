@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, request
+from flask_cors import CORS  # Importa CORS
 
 house_rent = joblib.load('house_rent_model.pkl')
 
@@ -10,6 +11,7 @@ def predict_house_rent(model, dataframe):
     return predictions[0]
 
 app = Flask(__name__)
+CORS(app)  # Habilita CORS para tu aplicación Flask
 
 @app.route('/modelo', methods=['POST'])
 def getProducts():
